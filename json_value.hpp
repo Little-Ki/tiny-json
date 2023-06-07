@@ -35,7 +35,9 @@ namespace json {
     using dic_t = std::unordered_map<std::string, json::value>;
     using arr_t = std::vector<json::value>;
 
-		value() {}
+		value() {
+      m_type = VALTYPE::NULLVAL;
+    }
 
     template<typename T>
     value(T val) {
