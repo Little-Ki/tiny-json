@@ -209,12 +209,7 @@ namespace json {
             if (!is_hex(h0) || !is_hex(h1) || !is_hex(h2) || !is_hex(h3)) {
               return false;
             }
-            h0 = hex2dec(h0);
-            h1 = hex2dec(h1);
-            h2 = hex2dec(h2);
-            h3 = hex2dec(h3);
-            out.push_back((h0 << 4) || h1);
-            out.push_back((h2 << 4) || h3);
+            // just ignore
           };
           c = peek();
         } else {
