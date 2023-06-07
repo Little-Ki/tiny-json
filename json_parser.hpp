@@ -202,14 +202,17 @@ namespace json {
           if (next == 'r')  out.push_back('\r');
           if (next == '"')  out.push_back('\"');
           if (next == 'u') {
-            unsigned char h0 = peek_next();
-            unsigned char h1 = peek_next();
-            unsigned char h2 = peek_next();
-            unsigned char h3 = peek_next();
+            char h0 = peek_next();
+            char h1 = peek_next();
+            char h2 = peek_next();
+            char h3 = peek_next();
             if (!is_hex(h0) || !is_hex(h1) || !is_hex(h2) || !is_hex(h3)) {
               return false;
             }
-            // just ignore
+            auto unicode = (h0 << 12) | (h1 << 8)  | (h2 << 4) | h3;
+            std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
+            std::string u8str = converter.to_bytes(unicode);
+            out.append(u8str);
           };
           c = peek();
         } else {
