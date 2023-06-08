@@ -6,182 +6,202 @@
 
 namespace json {
 
-  template <typename T>
-  constexpr size_t hash_type()
-  {
-      size_t result{};
-      #ifdef _MSC_VER 
-        #define F __FUNCSIG__
-      #else 
+	template <typename T>
+	constexpr size_t hash_type()
+	{
+			size_t result{};
+			#ifdef _MSC_VER 
+				#define F __FUNCSIG__
+			#else 
 				#define F __PRETTY_FUNCTION__
-      #endif
-      for (const auto &c : F)
-          (result ^= c) <<= 1;
-      return result;
-  };
+			#endif
+			for (const auto &c : F)
+					(result ^= c) <<= 1;
+			return result;
+	};
 
-  enum class VALTYPE {
-    UNKNOWN,
-    STRING,
-    BOOLEAN,
-    NUMBER,
-    OBJECT,
-    ARRAY,
-    NULLVAL
-  };
+	enum class TYPE {
+		INVALID,
+		STRING,
+		BOOLEAN,
+		FLOAT,
+		INTEGER,
+		DOUBLE,
+		DIRCTORY,
+		ARRAY,
+		NULLVAL
+	};
+	
+	class value {
+	public:
+		using dic_t = std::unordered_map<std::string, json::value>;
+		using arr_t = std::vector<json::value>;
 
-  class value {
-  public:
-    using dic_t = std::unordered_map<std::string, json::value>;
-    using arr_t = std::vector<json::value>;
+	public:
+		value() = default;
 
-		value() {
-      m_type = VALTYPE::NULLVAL;
-    }
+		value(json::TYPE type) : m_type(type) {
+			if (type == json::TYPE::STRING) {
+				m_val	 = std::string("");
+				m_hash	= hash_type<std::string>();
+			}
+			if (type == json::TYPE::BOOLEAN) {
+				m_val	 = false;
+				m_hash	= hash_type<bool>();
+			}
+			if (type == json::TYPE::FLOAT) {
+				m_val	 = 0.0f;
+				m_hash	= hash_type<float>();
+			}
+			if (type == json::TYPE::INTEGER) {
+				m_val	 = 0;
+				m_hash	= hash_type<int>();
+			}
+			if (type == json::TYPE::DOUBLE) {
+				m_val	 = 0.0;
+				m_hash	= hash_type<double>();
+			}
+			if (type == json::TYPE::DIRCTORY) {
+				m_val	 = dic_t();
+				m_hash	= hash_type<dic_t>();
+			}
+			if (type == json::TYPE::ARRAY) {
+				m_val	 = arr_t();
+				m_hash	= hash_type<arr_t>();
+			}
+		}
 
-    template<typename T>
-    value(T val) {
-      m_hash = hash_type<T>();
-			clear();
-      set<T>(val);
-    }
+		template<typename T>
+		value(const T& val) {
+			operator=<T>(val);
+		}
 
 		~value() { clear(); }
 
-    template<typename T>
-    void set(T val) {
-      /**/ if constexpr (std::is_same_v<T, std::string>){
-				m_type = VALTYPE::STRING;
-			} 
-      else if constexpr (std::is_same_v<T, bool>){
-        m_type = VALTYPE::BOOLEAN;
-      } 
-      else if constexpr (std::is_arithmetic_v<T>){
-        m_type = VALTYPE::NUMBER;
-      } 
-			else if constexpr (std::is_same_v<T, std::initializer_list<json::value>>){
-        m_type = VALTYPE::ARRAY;
-      }
-			else if constexpr (std::is_same_v<T, arr_t>){
-        m_type = VALTYPE::ARRAY;
-      }
-			else if constexpr (std::is_same_v<T, dic_t>){
-				m_type = VALTYPE::OBJECT;
+		template<typename T>
+		void operator=(const T& val) {
+			auto __set = [&](json::TYPE t) {
+				m_type = t;
+				m_val = val;
+				m_hash = hash_type<T>();
+			};
+			/**/ if constexpr (std::is_same_v<T, std::string>) {
+				__set(json::TYPE::STRING);
 			}
-			else {
-				m_type = VALTYPE::UNKNOWN;
+			else if constexpr (std::is_same_v<T, bool>) {
+				__set(json::TYPE::BOOLEAN);
 			}
-      if (m_type != VALTYPE::UNKNOWN) {
-        m_val = val;
-      }
-    }
+			else if constexpr (std::is_same_v<T, int>) {
+				__set(json::TYPE::INTEGER);
+			}
+			else if constexpr (std::is_same_v<T, double>) {
+				__set(json::TYPE::DOUBLE);
+			}
+			else if constexpr (std::is_same_v<T, float>) {
+				__set(json::TYPE::FLOAT);
+			}
+			else if constexpr (std::is_same_v<T, dic_t>) {
+				__set(json::TYPE::DIRCTORY);
+			}
+			else if constexpr (std::is_same_v<T, arr_t>) {
+				__set(json::TYPE::ARRAY);
+			}
+		} 
 
-    void set(const char* str) {
-      set(std::string(str));
-    }
+		template<typename T>
+		void operator=(const char* val) {
+				m_type = json::TYPE::STRING;
+				m_val = std::string(val);
+				m_hash = hash_type<std::string>();
+		}
+
+		template<typename T>
+		void operator+=(const T& val) {
+			append(val);
+		}
+
+		template<typename T>
+		void operator+=(const char* val) {
+			append(std::string(val));
+		}
 
 		void clear() {
-			if (m_type == VALTYPE::ARRAY) {
+			if (m_type == json::TYPE::ARRAY) {
 				(std::any_cast<arr_t&>(m_val)).clear();
 			}
-			if (m_type == VALTYPE::OBJECT) {
+			if (m_type == json::TYPE::DIRCTORY) {
 				(std::any_cast<dic_t&>(m_val)).clear();
 			}
 		}
 
-    template<typename T>
-    T as(const T& _default = T{}) {
-			static_assert(
-				std::is_same_v<T, std::string> ||
-				std::is_arithmetic_v<T> || 
-				std::is_same_v<T, bool>
-			);
-      if (m_type == VALTYPE::UNKNOWN || m_type == VALTYPE::NULLVAL) {
-        return _default;
-      }
-      /**/ if constexpr (std::is_same_v<T, std::string>) {
-        if (m_type != VALTYPE::STRING) 
-					return _default;
-      }
-      else if constexpr (std::is_same_v<T, bool>) {
-        if (m_type != VALTYPE::BOOLEAN) return _default;
-      }
-      else if constexpr (std::is_arithmetic_v<T>) {
-        if (m_type != VALTYPE::NUMBER) return _default;
-				if (m_hash == hash_type<typename std::remove_cv_t<float>>()) {
+		template<typename T>
+		T as(const T& defaults = T{}) {
+			if constexpr (std::is_same_v<T, std::string>) {
+				if (m_type != json::TYPE::STRING) return defaults;
+				return std::any_cast<T>(m_val);
+			}
+			else if constexpr (std::is_same_v<T, bool>) {
+				if (m_type != json::TYPE::BOOLEAN) return defaults;
+				return std::any_cast<T>(m_val);
+			}
+			else if constexpr (std::is_arithmetic_v<T>) {
+				if (
+					m_type != json::TYPE::INTEGER && 
+					m_type != json::TYPE::FLOAT &&
+					m_type != json::TYPE::DOUBLE
+				) return defaults;
+				if (m_hash == hash_type<float>()) {
 					return static_cast<T>(std::any_cast<float>(m_val));
 				}
-				if (m_hash == hash_type<typename std::remove_cv_t<double>>()) {
+				if (m_hash == hash_type<double>()) {
 					return static_cast<T>(std::any_cast<double>(m_val));
 				}
-				if (m_hash == hash_type<typename std::remove_cv_t<int>>()) {
+				if (m_hash == hash_type<int>()) {
 					return static_cast<T>(std::any_cast<int>(m_val));
 				}
-      }
-      return std::any_cast<T>(m_val);
-    }
-
-    template<typename T>
-    void operator=(const T& val) {
-			static_assert(
-				std::is_arithmetic_v<T> || 
-				std::is_same_v<T, bool>
-			);
-      
-    }
+			}
+			return defaults;
+		}
 
 		void append(const value& val) {
-			if (m_type == VALTYPE::ARRAY) {
+			if (m_type == json::TYPE::ARRAY) {
 				auto& vec = std::any_cast<std::vector<json::value>&>(m_val);
 				vec.push_back(val);
 			}
 		}
 
-		void set(const std::string& key, const value& val) {
-			if (m_type == VALTYPE::OBJECT) {
-				auto& map = std::any_cast<dic_t&>(m_val);
-				map[key] = val;
-			}
-		}
-
-		void set(const std::string& key, const char* val) {
-			if (m_type == VALTYPE::OBJECT) {
-				auto& map = std::any_cast<dic_t&>(m_val);
-				map[key] = json::value(std::string(val));
-			}
-		}
-
 		value& operator[](const std::string& key) {
-			if (m_type == VALTYPE::OBJECT) {
+			if (m_type == json::TYPE::DIRCTORY) {
 				auto& map = std::any_cast<dic_t&>(m_val);
-				if (map.find(key) == map.end()) {
-					return *this;
-				}
+				if (map.find(key) == map.end()) 
+					map.emplace(key, value(json::TYPE::NULLVAL));
 				return map[key];
 			}
 			return *this;
 		}
 
 		value& operator[](const size_t index) {
-			if (m_type == VALTYPE::ARRAY) {
+			if (m_type == json::TYPE::ARRAY) {
 				auto& vec = std::any_cast<arr_t&>(m_val);
-				if (index < vec.size()) 
-					return vec[index];
+				if (index < vec.size()) return vec[index];
 				return *this;
 			}
 			return *this;
 		}
 
-		bool is_null() { return m_type == VALTYPE::NULLVAL; }
+		bool is_null() { return m_type == json::TYPE::NULLVAL; }
 
-		VALTYPE type() { return m_type; }
+		void set_null() { m_val.reset(); m_type = json::TYPE::NULLVAL; }
 
-  private:
-    std::any m_val;
-    
-    VALTYPE m_type { VALTYPE::UNKNOWN };
+		json::TYPE type() { return m_type; }
 
-    size_t m_hash { 0 };
-  };
+	private:
+		std::any m_val;
+		
+		json::TYPE m_type { json::TYPE::INVALID };
+
+		size_t m_hash { 0 };
+
+	};
 
 }
