@@ -3,6 +3,8 @@ A very simple json parser;
 
 **NOTE:** Require utf-8 input format.
 
+**NOTE:** I don't know how to solve the '\uXXXX' unicode in string, so I just ignore it.
+
 **usage** 
 ```cpp
 void demo() {
