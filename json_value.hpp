@@ -9,15 +9,15 @@ namespace json {
 	template <typename T>
 	constexpr size_t hash_type()
 	{
-			size_t result{};
-			#ifdef _MSC_VER 
-				#define F __FUNCSIG__
-			#else 
-				#define F __PRETTY_FUNCTION__
-			#endif
-			for (const auto &c : F)
-					(result ^= c) <<= 1;
-			return result;
+		size_t result{};
+		#ifdef _MSC_VER 
+			#define F __FUNCSIG__
+		#else 
+			#define F __PRETTY_FUNCTION__
+		#endif
+		for (const auto &c : F)
+			(result ^= c) <<= 1;
+		return result;
 	};
 
 	enum class TYPE {
