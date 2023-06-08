@@ -36,8 +36,8 @@ namespace json {
 		
 		bool parse_t() {
 			m_pos = 0;
-      m_line = 0;
-      m_col = 0;
+			m_line = 0;
+			m_col = 0;
 			if (!parse_value(m_json)) {
 				return false;
 			}
@@ -158,10 +158,12 @@ namespace json {
 						if (!is_hex(h0) || !is_hex(h1) || !is_hex(h2) || !is_hex(h3)) {
 							return false;
 						}
+						h0 = hex2dec(h0);
+						h1 = hex2dec(h1);
+						h2 = hex2dec(h2);
+						h3 = hex2dec(h3);
 						auto unicode = (h0 << 12) | (h1 << 8)	| (h2 << 4) | h3;
-						std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
-						std::string u8str = converter.to_bytes(unicode);
-						out.append(u8str);
+						out.append(unicode_utf8(unicode));
 					};
 					c = peek();
 				} else {
@@ -243,10 +245,10 @@ namespace json {
 				!eof() && 
 				(c == ' ' || c == '\n' || c == '\t' || c == '\r')
 			) {
-        if (c == '\n') {
-          m_col = 0;
-          m_line += 1;
-        }
+				if (c == '\n') {
+					m_col = 0;
+					m_line += 1;
+				}
 				next();
 				c = peek();
 			}
@@ -284,12 +286,25 @@ namespace json {
 			(val >= 'A' && val <= 'F') ;
 		}
 
+		std::string unicode_utf8(wchar_t u) {
+			if (u <= 0x7F) {
+				return { (char) (u & 0x7F) };
+			} 
+			else if (u <= 0x7FF) {
+				return { (char) (((u >> 6) & 0x1F) | 0xC0), (char) ((u & 0x3F) | 0x80) };
+			}
+			else if (u <= 0xFFFF) {
+				return { (char) (((u >> 12) & 0x0F) | 0xE0), (char) (((u >> 6) & 0x3F) | 0x80), (char) ((u & 0x3F) | 0x80) };
+			}
+			return {};
+		}
+
 	public:
 		std::string m_doc;
 
 		size_t m_pos { 0 };
 
-    size_t m_line { 0 }, m_col { 0 };
+		size_t m_line { 0 }, m_col { 0 };
 
 		json::value m_json;
 
