@@ -169,7 +169,15 @@ namespace json {
 				vec.push_back(val);
 			}
 		}
-
+		
+		size_t size() {
+			if (m_type == json::TYPE::ARRAY) {
+				auto& vec = std::any_cast<std::vector<json::value>&>(m_val);
+				return vec.size();;
+			}
+			return 0;
+		}
+		
 		value& operator[](const std::string& key) {
 			if (m_type == json::TYPE::DIRCTORY) {
 				auto& map = std::any_cast<dic_t&>(m_val);
