@@ -1,13 +1,15 @@
 # TinyJson
+
 A very simple json parser;
 
 **NOTE:** Require utf-8 input format.
 
-**usage** 
+**usage**
+
 ```cpp
 void demo() {
   auto json_text = R"(
-    { 
+    {
       "string": "hello",
       "int": 100,
       "double": 1.00e1,
@@ -35,5 +37,14 @@ void demo() {
     std::cout << doc["array"][0]["inner"].as<std::string>() << '\n';
     std::cout << doc["array"][1].as<double>() << '\n';
   }
+}
+```
+
+```cpp
+void demo() {
+  json::value doc;
+  doc = { { "hello", "world" }, { "number", 1234.5f } };
+  std::cout << doc["hello"].as<std::string>() << '\n';
+  std::cout << doc["number"].as<float>() << '\n';
 }
 ```
