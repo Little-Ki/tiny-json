@@ -19,7 +19,7 @@ namespace json {
 		bool parse() {
 			auto succ = parse_t();
 			if (!succ) {
-				std::cout << "Parse json failed at line:" << m_line << ", col:" << m_col << '\n';
+				std::cout << "Parse json failed at line:" << m_line + 1 << ", col:" << m_col + 1 << '\n';
 			}
 			return succ;
 		}
@@ -59,7 +59,10 @@ namespace json {
 					if (!parse_string(str)) return false;
 					out = str;
 			}
-			else if (peek() >= '0' && peek() <= '9'){ 
+			else if (
+				(peek() >= '0' && peek() <= '9') || 
+				(peek() == '-')
+			){ 
 					std::string str;
 					bool f, e;
 					if (!parse_number(str, f, e)) return false;
@@ -180,35 +183,59 @@ namespace json {
 		}
 
 		bool parse_number(std::string& out, bool& f, bool& e) {
-			size_t dot = 0, _e = 0;
-			auto c = peek();
+			auto c = peek_next();
+			if (c == '-') {
+				if (peek() >= '0' && peek() <= '9') {
+					out.push_back(c);
+					return parse_number(out, f, e);
+				} return false;
+			}
+
 			bool valid = false;
+			size_t d_at = 0, e_at = 0;
+
 			if (!(c >= '0' && c <= '9')) { return false; }
-			while ((c >= '0' && c <= '9') || c == '.' || c == 'e') {
+			if (c == '0' && peek() != '.') { return false; }
+			out.push_back(c);
+
+			c = peek();
+			while ((c >= '0' && c <= '9') || c == '.') {
 				out.push_back(c);
 				if (c == '.') {
 					valid = false;
-					if (dot != 0) {
-						break;
-					}
-					else dot = m_pos;
+					if (d_at != 0) return false; 
+					else d_at = m_pos;
 				}
-				if (c == 'e') {
-					valid = false;
-					if (_e != 0)	{
-						break;
-					}
-					else _e = m_pos;
-				}
-				if (c >= '0' && c <= '9') {
-					valid = true;
-				}
+				if (c >= '0' && c <= '9') valid = true;
 				next();
 				c = peek();
 			};
-			f = dot != 0;
-			e = _e != 0;
-			return valid && ((dot != 0 && _e != 0) ? (_e > dot && _e - dot > 1) : true);
+			
+			if (c == 'e') {
+				out.push_back(c);
+				next();
+				c = peek();
+				valid = false;
+				e_at = m_pos;
+
+				if (c == '-') {
+					out.push_back(c);
+					next();
+					c = peek();
+					if (!(c >= '0' && c <= '9')) return false;
+				}
+
+				while (c >= '0' && c <= '9') {
+					valid = true;
+					out.push_back(c);
+					next();
+					c = peek();
+				}
+			}
+
+			f = d_at != 0;
+			e = e_at != 0;
+			return valid && ((d_at != 0 && e_at != 0) ? (e_at > d_at && e_at - d_at > 1) : true);
 		}
 
 		bool parse_boolean(bool& out) {
@@ -254,13 +281,13 @@ namespace json {
 			}
 		}
 
-		bool eof() { return m_pos == m_doc.size(); }
+		bool eof() { return m_pos >= m_doc.size(); }
 
 		char peek() { return m_doc[m_pos]; }
 
 		char peek_next() { auto c = peek(); next(); return c; }
 
-		void next() { m_pos += 1; m_col += 1;}
+		void next() { m_pos += 1; m_col += 1; }
 
 		size_t utf8_len() {
 			auto d = (const unsigned char*)m_doc.data();
