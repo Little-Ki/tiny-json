@@ -48,3 +48,13 @@ void demo() {
   std::cout << doc["number"].as<float>() << '\n';
 }
 ```
+
+
+```cpp
+void demo() {
+  json::value doc;
+  doc = { 123, 456, 789 };
+  std::cout << doc[0].as<int>() << '\n';
+  std::cout << doc[1].as<int>() << '\n';
+}
+```
