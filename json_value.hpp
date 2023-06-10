@@ -9,15 +9,15 @@ namespace json {
 	template <typename T>
 	constexpr size_t hash_type()
 	{
-		size_t result{};
-		#ifdef _MSC_VER 
-			#define F __FUNCSIG__
-		#else 
-			#define F __PRETTY_FUNCTION__
-		#endif
-		for (const auto &c : F)
-			(result ^= c) <<= 1;
-		return result;
+			size_t result{};
+			#ifdef _MSC_VER 
+				#define F __FUNCSIG__
+			#else 
+				#define F __PRETTY_FUNCTION__
+			#endif
+			for (const auto &c : F)
+					(result ^= c) <<= 1;
+			return result;
 	};
 
 	enum class TYPE {
@@ -108,6 +108,30 @@ namespace json {
 			}
 		} 
 
+		
+
+		void operator=(const std::initializer_list<std::pair<std::string, json::value>>& val) { 
+			clear();
+			m_type = json::TYPE::DIRCTORY;
+			m_val = dic_t();
+			m_hash = hash_type<dic_t>();
+			auto& map = std::any_cast<dic_t&>(m_val);
+			for(auto& p : val) {
+				map[p.first] = p.second;
+			}
+		}
+
+		void operator=(const std::initializer_list<json::value>& val) { 
+			clear();
+			m_type = json::TYPE::ARRAY;
+			m_val = arr_t();
+			m_hash = hash_type<arr_t>();
+			auto& arr = std::any_cast<arr_t&>(m_val);
+			for(auto& p : val) {
+				arr.push_back(p);
+			}
+		}
+
 		template<typename T>
 		void operator=(const char* val) {
 				m_type = json::TYPE::STRING;
@@ -169,7 +193,7 @@ namespace json {
 				vec.push_back(val);
 			}
 		}
-		
+
 		size_t size() {
 			if (m_type == json::TYPE::ARRAY) {
 				auto& vec = std::any_cast<std::vector<json::value>&>(m_val);
@@ -177,12 +201,12 @@ namespace json {
 			}
 			return 0;
 		}
-		
+
 		value& operator[](const std::string& key) {
 			if (m_type == json::TYPE::DIRCTORY) {
 				auto& map = std::any_cast<dic_t&>(m_val);
 				if (map.find(key) == map.end()) 
-					map.emplace(key, value(json::TYPE::NULLVAL));
+					map.emplace(key, value(json::TYPE::INVALID));
 				return map[key];
 			}
 			return *this;
@@ -201,6 +225,8 @@ namespace json {
 
 		void set_null() { m_val.reset(); m_type = json::TYPE::NULLVAL; }
 
+		bool undefined() { return m_type == json::TYPE::INVALID; }
+		
 		json::TYPE type() { return m_type; }
 
 	private:
