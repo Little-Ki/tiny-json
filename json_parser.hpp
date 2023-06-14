@@ -17,11 +17,10 @@ namespace json {
 		parser(const std::string& doc) : m_doc(doc) { m_doc.append("    "); }
 
 		bool parse() {
-			auto succ = parse_t();
-			if (!succ) {
+			if (!try_parse()) {
 				std::cout << "Parse json failed at line:" << m_line + 1 << ", col:" << m_col + 1 << '\n';
 			}
-			return succ;
+			return true;
 		}
 
 		json::value document() {
@@ -33,8 +32,7 @@ namespace json {
 		}
 
 	private:
-		
-		bool parse_t() {
+		bool try_parse() {
 			m_pos = 0;
 			m_line = 0;
 			m_col = 0;
