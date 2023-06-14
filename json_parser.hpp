@@ -19,6 +19,7 @@ namespace json {
 		bool parse() {
 			if (!try_parse()) {
 				std::cout << "Parse json failed at line:" << m_line + 1 << ", col:" << m_col + 1 << '\n';
+				return false;
 			}
 			return true;
 		}
