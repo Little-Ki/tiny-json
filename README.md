@@ -1,4 +1,4 @@
-# TinyJson
+# tiny-json
 
 A very simple json parser;
 
